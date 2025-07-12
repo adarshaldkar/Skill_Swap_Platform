@@ -1,7 +1,6 @@
 # Skill_Swap_Platform
 
 Team Leader Name - Adarsh patel
-
 Team Name  - Team 3894
 
 Email - adarshaldkar@gmail.com
