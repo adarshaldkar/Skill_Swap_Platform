@@ -1,61 +1,67 @@
 # Skill_Swap_Platform
 
-Team Leader Name - Adarsh patel
-Team Name  - Team 3894
+A collaborative mini-platform that allows users to **offer skills** and **request others in return** — enabling a barter-style knowledge-sharing ecosystem. Perfect for learners, hobbyists, and professionals alike.
 
-Email - adarshaldkar@gmail.com
+---
 
-Phone - 7010664806
+## 👥 Team Details
 
-Team Member 1
-Name - Ashwin R
-Email - ashwinwrk1204@gmail.com
-Phone - 9150558521
+- **Team Name**: Team 3894
 
+### 👨‍💼 Team Leader  
+- **Name**: Adarsh Patel  
+- 📧 **Email**: adarshaldkar@gmail.com  
+- 📞 **Phone**: 7010664806
 
-Skill Swap Platform
+### 👨‍💻 Team Member 1  
+- **Name**: Ashwin R  
+- 📧 **Email**: ashwinwrk1204@gmail.com  
+- 📞 **Phone**: 9150558521
 
-Overview:Develop a Skill Swap Platform — a mini application that enables users to list their skills and request others in return
+---
 
-Features:
+## 🧩 Problem Statement
 
-Basic info: Name, location (optional), profile photo (optional)
+### 💡 Title: Skill Swap Platform
 
-List of skills offered
+### 📄 Overview:
+Develop a **Skill Swap Platform** — a web application that enables users to **list the skills they can offer** and **request skills from others** in return.
 
-List of skills wanted
+This platform encourages collaborative learning and peer-to-peer growth without monetary transactions.
 
-Availability (e.g., weekends, evenings)
-User can make their profile public or private.
-Users can browse or search others by skill (e.g., “Photoshop” or “Excel”)
-Request & Accept Swaps:
-○ Accept or reject swap offers
-○ Show current and pending swap requests
-Ratings or feedback after a swap
-The user is also able to delete the swap request if it is not accepted.
-You can choose any one problem
-statement out of given three !
-All the best!
-Problem Statement 1:-
-StackIt – A Minimal Q&A Forum Platform
-Overview
-StackIt is a m inim al question-and-answer platform that supports collaborative
-learning and structured knowledge sharing. It’s designed to be sim ple, user- friendly,
-and focused on the core experience of asking and answering questions within a
-com m unity.
-User Roles
-Role Permissions
-Guest View all questions and answers
-User Register, log in, post questions/answers, vote
-Admin Moderate content
-Core Features (Must-Have)
-1. Ask Question
-Users can subm it a new question using:
-Title – Short and descriptive
-Description – Written using a rich text editor )
-Admin Role
-● Reject inappropriate or spammy skill descriptions.
-● Ban users who violate platform policies.
-● Monitor pending, accepted, or cancelled swaps.
-● Send platform-wide messages (e.g., feature updates, downtime alerts).
-● Download reports of user activity, feedback logs, and swap stats.
+---
+
+## 🌟 Core Features
+
+- 👤 **User Profiles**  
+  - Basic information: Name, location (optional), profile photo (optional)  
+  - Public/Private profile visibility  
+  - Availability status (e.g., weekends, evenings)
+
+- 📋 **Skill Management**  
+  - Add/remove skills offered  
+  - Add/remove skills wanted
+
+- 🔍 **Skill Search & Discovery**  
+  - Search or filter users by skills like "Photoshop" or "Excel"  
+  - View matching profiles based on skill interests
+
+- 🔄 **Swap Request System**  
+  - Send, accept, or reject swap requests  
+  - View pending and accepted requests  
+  - Delete unaccepted swap requests
+
+- ⭐ **Feedback & Ratings**  
+  - Give ratings and reviews post-swap to maintain credibility
+
+---
+
+## 🔐 Admin Features
+
+- ✅ Approve or reject inappropriate skill descriptions  
+- 🚫 Ban users violating policies  
+- 📊 Download user activity, feedback logs, and swap statistics  
+- 📢 Broadcast messages platform-wide (e.g., feature updates, alerts)  
+- 👀 Monitor and moderate all swaps (pending/accepted/rejected)
+
+---
