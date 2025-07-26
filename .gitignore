@@ -118,4 +118,4 @@ yarn.lock
 pnpm-lock.yaml
 
 # Local development files
-*.local 
+*.local

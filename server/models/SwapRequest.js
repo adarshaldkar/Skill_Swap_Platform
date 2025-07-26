@@ -1,33 +1,52 @@
-const mongoose = require("mongoose");
+// models/SwapRequest.js - SWAP REQUEST MODEL
+const mongoose = require('mongoose');
 
 const swapRequestSchema = new mongoose.Schema({
-  fromUserId: {
+  requester: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: 'User',
     required: true
   },
-  toUserId: {
+  recipient: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: 'User',
     required: true
   },
-  offeredSkill: {
+  requesterSkill: {
     type: String,
     required: true
   },
-  wantedSkill: {
+  recipientSkill: {
     type: String,
     required: true
+  },
+  message: {
+    type: String,
+    default: ''
   },
   status: {
     type: String,
-    default: "pending", // pending, accepted, rejected, completed
-    enum: ["pending", "accepted", "rejected", "completed"]
+    enum: ['pending', 'accepted', 'rejected', 'completed', 'cancelled'],
+    default: 'pending'
   },
-  createdAt: {
+  acceptedAt: {
     type: Date,
-    default: Date.now
+    default: null
+  },
+  completedAt: {
+    type: Date,
+    default: null
+  },
+  cancelledAt: {
+    type: Date,
+    default: null
+  },
+  notes: {
+    type: String,
+    default: ''
   }
+}, {
+  timestamps: true
 });
 
-module.exports = mongoose.model("SwapRequest", swapRequestSchema);
+module.exports = mongoose.models.SwapRequest || mongoose.model('SwapRequest', swapRequestSchema);

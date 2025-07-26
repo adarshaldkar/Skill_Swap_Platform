@@ -1,288 +1,179 @@
-import React, { useState } from 'react';
-import { X, ChevronDown, Star } from 'lucide-react';
+// src/components/SkillExchangeModal.jsx - SWAP REQUEST MODAL
+import React, { useState, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 
-const SkillExchangeModal = ({ isOpen, onClose, selectedUser }) => {
-  const [skillToLearn, setSkillToLearn] = useState('');
-  const [skillToTeach, setSkillToTeach] = useState('');
-  const [message, setMessage] = useState('');
-  const [availability, setAvailability] = useState('');
-  const [duration, setDuration] = useState('');
-  const [showSkillToLearnDropdown, setShowSkillToLearnDropdown] = useState(false);
-  const [showSkillToTeachDropdown, setShowSkillToTeachDropdown] = useState(false);
-  const [showAvailabilityDropdown, setShowAvailabilityDropdown] = useState(false);
-  const [showDurationDropdown, setShowDurationDropdown] = useState(false);
+const SkillExchangeModal = ({ user: targetUser, onClose, onSuccess }) => {
+  const { user } = useContext(AuthContext);
+  const [formData, setFormData] = useState({
+    requesterSkill: '',
+    recipientSkill: '',
+    message: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const skillCategories = [
-    'Design',
-    'Development',
-    'Music',
-    'Language',
-    'Business',
-    'Lifestyle',
-    'Photography',
-    'Education'
-  ];
-
-  const availabilityOptions = [
-    'Weekdays',
-    'Weekends',
-    'Evenings',
-    'Mornings',
-    'Flexible'
-  ];
-
-  const durationOptions = [
-    '30 minutes',
-    '1 hour',
-    '1.5 hours',
-    '2 hours',
-    '2+ hours'
-  ];
-
-  const handleSendRequest = () => {
-    console.log('Request sent:', {
-      recipientUser: selectedUser,
-      skillToLearn,
-      skillToTeach,
-      message,
-      availability,
-      duration
-    });
-    onClose();
-  };
-
-  const handleCancel = () => {
-    onClose();
-  };
-
-  const renderStars = (rating) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`w-3 h-3 ${i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-      />
-    ));
-  };
-
-  // Reset form when modal opens
-  React.useEffect(() => {
-    if (isOpen) {
-      setSkillToLearn('');
-      setSkillToTeach('');
-      setMessage('');
-      setAvailability('');
-      setDuration('');
-      setShowSkillToLearnDropdown(false);
-      setShowSkillToTeachDropdown(false);
-      setShowAvailabilityDropdown(false);
-      setShowDurationDropdown(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.requesterSkill || !formData.recipientSkill) {
+      setError('Please select skills for both parties');
+      return;
     }
-  }, [isOpen]);
-  if (!isOpen) {
-    return null;
-  }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/swap-requests/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          recipientId: targetUser._id,
+          requesterSkill: formData.requesterSkill,
+          recipientSkill: formData.recipientSkill,
+          message: formData.message
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        onSuccess();
+        alert('Swap request sent successfully!');
+      } else {
+        setError(data.message || 'Failed to send swap request');
+      }
+    } catch (error) {
+      console.error('Error sending swap request:', error);
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-white bg-opacity-40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">Create Skill Exchange Request</h2>
-          <button
-            onClick={handleCancel}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">
+              Send Swap Request
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 text-2xl"
+            >
+              ×
+            </button>
+          </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Skill You Want to Learn */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Skill You Want to Learn
-            </label>
-            <div className="relative">
-              <button
-                onClick={() => setShowSkillToLearnDropdown(!showSkillToLearnDropdown)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-left flex items-center justify-between hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <span className={skillToLearn ? 'text-gray-900' : 'text-gray-500'}>
-                  {skillToLearn || 'Select a skill you want to learn'}
+          {/* Target User Info */}
+          <div className="flex items-center mb-6 p-4 bg-gray-50 rounded-lg">
+            {targetUser.profilePicture ? (
+              <img
+                src={targetUser.profilePicture}
+                alt={targetUser.name}
+                className="w-12 h-12 rounded-full object-cover mr-3"
+              />
+            ) : (
+              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                <span className="text-white font-semibold">
+                  {targetUser.name?.charAt(0)}
                 </span>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </button>
-              {showSkillToLearnDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                  {skillCategories.map((skill) => (
-                    <button
-                      key={skill}
-                      onClick={() => {
-                        setSkillToLearn(skill);
-                        setShowSkillToLearnDropdown(false);
-                      }}
-                      className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50"
-                    >
-                      {skill}
-                    </button>
-                  ))}
-                </div>
-              )}
+              </div>
+            )}
+            <div>
+              <h3 className="font-semibold text-gray-900">{targetUser.name}</h3>
+              <p className="text-gray-600 text-sm">{targetUser.location || 'Location not specified'}</p>
             </div>
           </div>
 
-          {/* Skill You Can Teach */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Skill You Can Teach
-            </label>
-            <div className="relative">
-              <button
-                onClick={() => setShowSkillToTeachDropdown(!showSkillToTeachDropdown)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-left flex items-center justify-between hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <span className={skillToTeach ? 'text-gray-900' : 'text-gray-500'}>
-                  {skillToTeach || 'Select a skill you can teach'}
-                </span>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </button>
-              {showSkillToTeachDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                  {skillCategories.map((skill) => (
-                    <button
-                      key={skill}
-                      onClick={() => {
-                        setSkillToTeach(skill);
-                        setShowSkillToTeachDropdown(false);
-                      }}
-                      className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50"
-                    >
-                      {skill}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Your Message */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Your Message
-            </label>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Introduce yourself and explain why you're interested in this skill exchange."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none h-20"
-            />
-          </div>
-
-          {/* Availability and Session Duration */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Your Skill */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Availability
+                Your Skill to Offer
               </label>
-              <div className="relative">
-                <button
-                  onClick={() => setShowAvailabilityDropdown(!showAvailabilityDropdown)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-left flex items-center justify-between hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <span className={availability ? 'text-gray-900' : 'text-gray-500'}>
-                    {availability || 'Select availability'}
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                </button>
-                {showAvailabilityDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
-                    {availabilityOptions.map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => {
-                          setAvailability(option);
-                          setShowAvailabilityDropdown(false);
-                        }}
-                        className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50"
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <select
+                value={formData.requesterSkill}
+                onChange={(e) => setFormData(prev => ({ ...prev, requesterSkill: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select a skill you can teach</option>
+                {user?.skillsOffered?.map((skill, index) => (
+                  <option key={index} value={skill}>
+                    {skill}
+                  </option>
+                ))}
+              </select>
             </div>
 
+            {/* Their Skill */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Session Duration
+                Skill You Want to Learn
               </label>
-              <div className="relative">
-                <button
-                  onClick={() => setShowDurationDropdown(!showDurationDropdown)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-left flex items-center justify-between hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <span className={duration ? 'text-gray-900' : 'text-gray-500'}>
-                    {duration || 'Select duration'}
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                </button>
-                {showDurationDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
-                    {durationOptions.map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => {
-                          setDuration(option);
-                          setShowDurationDropdown(false);
-                        }}
-                        className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50"
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <select
+                value={formData.recipientSkill}
+                onChange={(e) => setFormData(prev => ({ ...prev, recipientSkill: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select a skill you want to learn</option>
+                {targetUser.skillsOffered?.map((skill, index) => (
+                  <option key={index} value={skill}>
+                    {skill}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          {/* Request Recipient */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Request Recipient
-            </label>
-            <div className="flex items-center p-3 bg-gray-50 rounded-md">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-medium mr-3">
-                {selectedUser?.avatar || 'U'}
-              </div>
-              <div className="flex-1">
-                <div className="font-medium text-gray-900">{selectedUser?.name || 'Unknown User'}</div>
-                <div className="text-sm text-gray-500">{selectedUser?.location || 'Location not specified'}</div>
-                <div className="flex items-center mt-1">
-                  {renderStars(selectedUser?.rating || 0)}
-                  <span className="text-sm text-gray-500 ml-1">({selectedUser?.rating || 0} reviews)</span>
-                </div>
-              </div>
+            {/* Message */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Message (Optional)
+              </label>
+              <textarea
+                value={formData.message}
+                onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                placeholder="Introduce yourself and explain what you're hoping to achieve through this skill swap..."
+                rows="4"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              />
             </div>
-          </div>
-        </div>
 
-        {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-          <button
-            onClick={handleCancel}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSendRequest}
-            className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
-          >
-            Send Request
-          </button>
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? 'Sending...' : 'Send Request'}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

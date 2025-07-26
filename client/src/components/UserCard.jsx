@@ -1,241 +1,434 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Star, Sparkles } from 'lucide-react';
-import SkillExchangeModal from './SkillExchangeModal'; // if you have a modal component
+// src/components/UserCard.jsx - USER BROWSING COMPONENT
+import React, { useState, useEffect, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
+import SkillExchangeModal from './SkillExchangeModal';
 
-const UserCard = (props) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState([]);
-  const [selectedRating, setSelectedRating] = useState('');
+const UserCard = () => {
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
-  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    keyword: '',
+    category: '',
+    location: '',
+    minRating: 0,
+    availability: '',
+    sortBy: 'rating',
+    sortOrder: 'desc'
+  });
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalUsers: 0,
+    limit: 12
+  });
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
-  const fetchUsers = async () => {
-    const params = new URLSearchParams();
-
-    if (searchQuery) params.append("q", searchQuery);
-    if (selectedCategories.length > 0) params.append("category", selectedCategories.join(","));
-    if (selectedRating) params.append("minRating", selectedRating);
-
-    const response = await fetch(`http://localhost:5000/api/users/search?${params}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    const data = await response.json();
-    setUsers(data);
-  };
+  const skillCategories = [
+    'Web Development', 'Mobile Development', 'Data Science', 'Machine Learning',
+    'Graphic Design', 'UI/UX Design', 'Photography', 'Video Editing',
+    'Writing', 'Content Creation', 'Digital Marketing', 'SEO',
+    'Music Production', 'Music Theory', 'Language Teaching', 'Tutoring',
+    'Business Strategy', 'Project Management', 'Finance', 'Accounting'
+  ];
 
   useEffect(() => {
     fetchUsers();
-  }, [searchQuery, selectedCategories, selectedRating]);
+  }, [filters, pagination.currentPage]);
 
-  const toggleCategory = (category) => {
-    setSelectedCategories(prev =>
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const queryParams = new URLSearchParams({
+        ...filters,
+        page: pagination.currentPage,
+        limit: pagination.limit
+      });
+
+      const response = await fetch(`http://localhost:5000/api/search/users?${queryParams}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users || []);
+        setPagination(prev => ({
+          ...prev,
+          ...data.pagination
+        }));
+      } else {
+        console.error('Failed to fetch users');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const renderStars = (count) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star key={i} className={`w-4 h-4 ${i < count ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-    ));
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
-  const skillCategories = [
-    'Design', 'Development', 'Music', 'Language', 'Business', 'Lifestyle', 'Photography', 'Education'
-  ];
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, currentPage: newPage }));
+  };
+
+  const handleSendRequest = (targetUser) => {
+    setSelectedUser(targetUser);
+    setShowModal(true);
+  };
+
+  const getRatingStars = (rating) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(<span key={i} className="text-yellow-400">★</span>);
+    }
+    
+    if (hasHalfStar) {
+      stars.push(<span key={fullStars} className="text-yellow-400">☆</span>);
+    }
+    
+    const remainingStars = 5 - Math.ceil(rating);
+    for (let i = 0; i < remainingStars; i++) {
+      stars.push(<span key={fullStars + 1 + i} className="text-gray-300">★</span>);
+    }
+    
+    return stars;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
+      {/* Navigation Header */}
+      <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">SkillSwap</span>
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-8">
+              <Link to="/" className="text-xl font-bold text-blue-600">
+                SkillSwap
+              </Link>
+              <nav className="flex space-x-4">
+                <Link to="/" className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                  Home
+                </Link>
+                <Link to="/browse" className="text-blue-600 bg-blue-50 px-3 py-2 rounded-md text-sm font-medium">
+                  Browse
+                </Link>
+                <Link to="/profile" className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                  Profile
+                </Link>
+              </nav>
             </div>
-            <div className="flex items-center space-x-6">
-              <button className="text-gray-600 hover:text-gray-900 transition-colors font-medium" onClick={props.onGoHome}>
-                Home
-              </button>
-              <button className="font-medium border-b-2 border-gray-900 pb-1" onClick={props.onBrowseSkills}>
-                Browse Skills
-              </button>
-              <button className="text-gray-600 hover:text-gray-900 transition-colors font-medium" onClick={props.onMyProfile}>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Welcome, {user?.name}</span>
+              <Link to="/profile" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
                 My Profile
-              </button>
-              <button 
-                onClick={() => localStorage.removeItem('token')}
-                className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+              </Link>
+              <button
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+                className="text-red-600 hover:text-red-700 text-sm font-medium"
               >
-                Log Out
+                Logout
               </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Browse Skills</h1>
-          <p className="text-gray-600">Find people to learn or teach skills</p>
-        </div>
-
-        <div className="flex gap-8">
-          {/* Sidebar - Filters */}
-          <div className="w-64 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Filters</h3>
-
-              {/* Skill Categories */}
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">Skill Categories</h4>
-                <div className="space-y-2">
-                  {skillCategories.map((category) => (
-                    <label key={category} className="flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedCategories.includes(category)}
-                        onChange={() => toggleCategory(category)}
-                        className="w-4 h-4 text-gray-600 border-gray-300 focus:ring-gray-500"
-                      />
-                      <span className="ml-3 text-sm text-gray-700">{category}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Rating Filter */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Rating</h4>
-                <div className="space-y-2">
-                  {[5, 4, 3, 2].map(rating => (
-                    <label key={rating} className="flex items-center cursor-pointer">
-                      <input
-                        type="radio"
-                        name="rating"
-                        value={rating}
-                        checked={selectedRating === `${rating}`}
-                        onChange={(e) => setSelectedRating(e.target.value)}
-                        className="w-4 h-4 text-gray-600 border-gray-300 focus:ring-gray-500"
-                      />
-                      <div className="ml-3 flex items-center">
-                        {renderStars(rating)}
-                        <span className="ml-2 text-sm text-gray-700">{rating} & up</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Content - User Cards Grid */}
-          <div className="flex-1">
-            {/* Search Bar */}
-            <div className="mb-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search skills or keywords..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
-                />
-              </div>
-            </div>
-
-            {/* User Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {users.length === 0 ? (
-                <p className="col-span-2 text-center text-gray-500 mt-10">
-                  No users found matching your criteria.
-                </p>
-              ) : (
-                users.map(user => (
-                  <div key={user._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold">
-                          {user.initials || user.fullName?.charAt(0) + (user.fullName.split(" ")[1]?.charAt(0) || "")}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{user.fullName}</h3>
-                          <p className="text-sm text-gray-500">{user.location || 'Location not specified'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Skills I Can Teach */}
-                    <div className="mb-4">
-                      <h4 className="font-medium text-gray-900 mb-2">Skills I Can Teach</h4>
-                      {user.skillsToTeach?.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {user.skillsToTeach.map((skill, index) => (
-                            <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                              {skill.name}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-gray-500 text-sm">No skills listed</p>
-                      )}
-                    </div>
-
-                    {/* Skills I Want to Learn */}
-                    <div className="mb-4">
-                      <h4 className="font-medium text-gray-900 mb-2">Skills I Want to Learn</h4>
-                      {user.skillsToLearn?.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {user.skillsToLearn.map((skill, index) => (
-                            <span key={index} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                              {skill.name}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-gray-500 text-sm">No skills listed</p>
-                      )}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                      <p className="text-sm text-gray-500">{user.memberSince || 'Member since June 2025'}</p>
-                      <button
-                        onClick={() => {
-                          setSelectedUser(user); // or whatever user object you want to swap with
-                          setShowSwapModal(true);
-                        }}
-                        className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
-                      >
-                        Request Swap
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
             </div>
           </div>
         </div>
       </div>
-      {showSwapModal && (
+
+      <div className="max-w-7xl mx-auto p-6">
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">Browse Users</h1>
+
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {/* Search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Search
+            </label>
+            <input
+              type="text"
+              placeholder="Search users, skills..."
+              value={filters.keyword}
+              onChange={(e) => handleFilterChange('keyword', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Skill Category
+            </label>
+            <select
+              value={filters.category}
+              onChange={(e) => handleFilterChange('category', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Categories</option>
+              {skillCategories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Location */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Location
+            </label>
+            <input
+              type="text"
+              placeholder="City, Country"
+              value={filters.location}
+              onChange={(e) => handleFilterChange('location', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Availability */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Availability
+            </label>
+            <select
+              value={filters.availability}
+              onChange={(e) => handleFilterChange('availability', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Any Time</option>
+              <option value="weekdays">Weekdays</option>
+              <option value="weekends">Weekends</option>
+              <option value="evenings">Evenings</option>
+              <option value="flexible">Flexible</option>
+            </select>
+          </div>
+
+          {/* Sort */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Sort By
+            </label>
+            <select
+              value={`${filters.sortBy}-${filters.sortOrder}`}
+              onChange={(e) => {
+                const [sortBy, sortOrder] = e.target.value.split('-');
+                handleFilterChange('sortBy', sortBy);
+                handleFilterChange('sortOrder', sortOrder);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="rating-desc">Highest Rated</option>
+              <option value="rating-asc">Lowest Rated</option>
+              <option value="name-asc">Name A-Z</option>
+              <option value="name-desc">Name Z-A</option>
+              <option value="createdAt-desc">Newest First</option>
+              <option value="lastActive-desc">Recently Active</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Users Grid */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      ) : users.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-lg shadow-md">
+          <p className="text-gray-500 text-lg">No users found matching your criteria.</p>
+          <p className="text-gray-400">Try adjusting your filters or search terms.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {users.map((targetUser) => (
+              <div key={targetUser._id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
+                {/* User Header */}
+                <div className="flex items-center mb-4">
+                  {targetUser.profilePicture ? (
+                    <img
+                      src={targetUser.profilePicture}
+                      alt={targetUser.name}
+                      className="w-12 h-12 rounded-full object-cover mr-3"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-white font-semibold text-lg">
+                        {targetUser.name?.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 truncate">{targetUser.name}</h3>
+                    <p className="text-gray-500 text-sm truncate">
+                      {targetUser.location || 'Location not specified'}
+                    </p>
+                  </div>
+                  {targetUser.isOnline && (
+                    <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                  )}
+                </div>
+
+                {/* Bio */}
+                {targetUser.bio && (
+                  <div className="mb-4">
+                    <p className="text-gray-600 text-sm line-clamp-2">
+                      {targetUser.bio}
+                    </p>
+                  </div>
+                )}
+
+                {/* Skills Offered */}
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Skills Offered:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {targetUser.skillsOffered?.slice(0, 3).map((skill, index) => (
+                      <span
+                        key={index}
+                        className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                    {targetUser.skillsOffered?.length > 3 && (
+                      <span className="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded-full">
+                        +{targetUser.skillsOffered.length - 3} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Skills Wanted */}
+                {targetUser.skillsWanted?.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Skills Wanted:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {targetUser.skillsWanted.slice(0, 3).map((skill, index) => (
+                        <span
+                          key={index}
+                          className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                      {targetUser.skillsWanted.length > 3 && (
+                        <span className="text-gray-500 text-xs bg-gray-100 px-2 py-1 rounded-full">
+                          +{targetUser.skillsWanted.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rating and Stats */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <div className="flex mr-1">
+                      {getRatingStars(targetUser.rating || 0)}
+                    </div>
+                    <span className="text-sm text-gray-600">
+                      ({targetUser.rating ? targetUser.rating.toFixed(1) : 'New'})
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {targetUser.skillCount} skills • {targetUser.availability}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => handleSendRequest(targetUser)}
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Send Swap Request
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="flex justify-center items-center mt-8 space-x-2">
+              <button
+                onClick={() => handlePageChange(pagination.currentPage - 1)}
+                disabled={!pagination.hasPrevPage}
+                className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Previous
+              </button>
+              
+              <div className="flex space-x-1">
+                {[...Array(Math.min(5, pagination.totalPages))].map((_, index) => {
+                  const pageNum = pagination.currentPage - 2 + index;
+                  if (pageNum < 1 || pageNum > pagination.totalPages) return null;
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`px-3 py-2 rounded-md ${
+                        pageNum === pagination.currentPage
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => handlePageChange(pagination.currentPage + 1)}
+                disabled={!pagination.hasNextPage}
+                className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Next
+              </button>
+            </div>
+          )}
+
+          {/* Results Info */}
+          <div className="text-center mt-4 text-gray-600">
+            Showing {((pagination.currentPage - 1) * pagination.limit) + 1} - {Math.min(pagination.currentPage * pagination.limit, pagination.totalUsers)} of {pagination.totalUsers} users
+          </div>
+        </>
+      )}
+
+      {/* Skill Exchange Modal */}
+      {showModal && selectedUser && (
         <SkillExchangeModal
           user={selectedUser}
-          onClose={() => setShowSwapModal(false)}
+          onClose={() => {
+            setShowModal(false);
+            setSelectedUser(null);
+          }}
+          onSuccess={() => {
+            setShowModal(false);
+            setSelectedUser(null);
+          }}
         />
       )}
+      </div>
     </div>
   );
 };

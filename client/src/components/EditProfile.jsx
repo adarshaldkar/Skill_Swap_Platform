@@ -1,508 +1,380 @@
-import React, { useState, useEffect } from 'react';
-import axios from '../utils/api';
-import { User, MapPin, Mail, Phone, Edit3, X, Star } from 'lucide-react';
-
-const skillCategories = [
-  { value: 'Development', label: 'Development' },
-  { value: 'Design', label: 'Design' },
-  { value: 'Music', label: 'Music' },
-  { value: 'Language', label: 'Language' },
-  { value: 'Business', label: 'Business' },
-  { value: 'Lifestyle', label: 'Lifestyle' },
-  { value: 'Photography', label: 'Photography' },
-  { value: 'Education', label: 'Education' },
-];
+// src/components/EditProfile.jsx - PROFILE MANAGEMENT
+import React, { useState, useContext, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 
 const EditProfile = () => {
-  const [profile, setProfile] = useState(null);
-  const [swapRequests, setSwapRequests] = useState([]);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
+  const { user, updateUser, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    name: '',
     location: '',
-    professionalTitle: '',
-    skillsToTeach: [],
-    skillsToLearn: []
+    bio: '',
+    skillsOffered: [],
+    skillsWanted: [],
+    availability: 'flexible',
+    isPublic: true,
+    profilePicture: ''
   });
+  const [newSkillOffered, setNewSkillOffered] = useState('');
+  const [newSkillWanted, setNewSkillWanted] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
 
-  const [newSkillTeach, setNewSkillTeach] = useState('');
-  const [newSkillLearn, setNewSkillLearn] = useState('');
-  const [selectedTeachCategory, setSelectedTeachCategory] = useState('');
-  const [selectedLearnCategory, setSelectedLearnCategory] = useState('');
+  const availabilityOptions = [
+    { value: 'weekdays', label: 'Weekdays' },
+    { value: 'weekends', label: 'Weekends' },
+    { value: 'evenings', label: 'Evenings' },
+    { value: 'flexible', label: 'Flexible' }
+  ];
 
-  // Fetch user data and swap requests on component mount
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await axios.get('/users/me');
-        setProfile(res.data);
-        setEditForm({
-          fullName: res.data.fullName || res.data.name || 'Unknown',
-          email: res.data.email,
-          phone: res.data.phone || '',
-          location: res.data.location || '',
-          professionalTitle: res.data.professionalTitle || '',
-          skillsToTeach: res.data.skillsToTeach || [],
-          skillsToLearn: res.data.skillsToLearn || []
-        });
-      } catch (err) {
-        console.error("Failed to load profile", err);
-      }
-    };
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        location: user.location || '',
+        bio: user.bio || '',
+        skillsOffered: user.skillsOffered || [],
+        skillsWanted: user.skillsWanted || [],
+        availability: user.availability || 'flexible',
+        isPublic: user.isPublic !== undefined ? user.isPublic : true,
+        profilePicture: user.profilePicture || ''
+      });
+    }
+  }, [user]);
 
-    const fetchSwapRequests = async () => {
-      try {
-        const res = await axios.get('/swaps/requests');
-        setSwapRequests(res.data);
-      } catch (err) {
-        console.error("Failed to load swap requests", err);
-      }
-    };
-
-    fetchProfile();
-    fetchSwapRequests();
-  }, []);
-
-  // Get incoming and outgoing requests
-  const getIncomingRequests = () =>
-    swapRequests.filter((r) => r.toUserId?._id === profile?._id);
-
-  const getOutgoingRequests = () =>
-    swapRequests.filter((r) => r.fromUserId?._id === profile?._id);
-
-  // Open modal with current data
-  const handleEditProfile = () => {
-    setShowEditModal(true);
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
-  // Save changes to backend
-  const handleSaveChanges = async () => {
+  const addSkillOffered = () => {
+    if (newSkillOffered.trim() && !formData.skillsOffered.includes(newSkillOffered.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        skillsOffered: [...prev.skillsOffered, newSkillOffered.trim()]
+      }));
+      setNewSkillOffered('');
+    }
+  };
+
+  const removeSkillOffered = (skillToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      skillsOffered: prev.skillsOffered.filter(skill => skill !== skillToRemove)
+    }));
+  };
+
+  const addSkillWanted = () => {
+    if (newSkillWanted.trim() && !formData.skillsWanted.includes(newSkillWanted.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        skillsWanted: [...prev.skillsWanted, newSkillWanted.trim()]
+      }));
+      setNewSkillWanted('');
+    }
+  };
+
+  const removeSkillWanted = (skillToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      skillsWanted: prev.skillsWanted.filter(skill => skill !== skillToRemove)
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
     try {
-      const res = await axios.put('/users/me', editForm);
-      setProfile(res.data);
-      setShowEditModal(false);
-    } catch (err) {
-      console.error("Failed to save changes", err);
-    }
-  };
-
-  // Cancel edit modal
-  const handleCancel = () => {
-    setEditForm({ ...profile });
-    setShowEditModal(false);
-  };
-
-  // Add new skill to teach
-  const addSkillToTeach = () => {
-    if (newSkillTeach.trim() && selectedTeachCategory) {
-      setEditForm({
-        ...editForm,
-        skillsToTeach: [
-          ...editForm.skillsToTeach,
-          { name: newSkillTeach, category: selectedTeachCategory }
-        ]
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/users/profile', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
       });
-      setNewSkillTeach('');
-      setSelectedTeachCategory('');
+
+      const data = await response.json();
+
+      if (response.ok) {
+        updateUser(data.user);
+        setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Failed to update profile' });
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setLoading(false);
     }
-  };
-
-  // Remove a skill from teach list
-  const removeSkillToTeach = (index) => {
-    const updatedSkills = [...editForm.skillsToTeach];
-    updatedSkills.splice(index, 1);
-    setEditForm({
-      ...editForm,
-      skillsToTeach: updatedSkills
-    });
-  };
-
-  // Add new skill to learn
-  const addSkillToLearn = () => {
-    if (newSkillLearn.trim() && selectedLearnCategory) {
-      setEditForm({
-        ...editForm,
-        skillsToLearn: [
-          ...editForm.skillsToLearn,
-          { name: newSkillLearn, category: selectedLearnCategory }
-        ]
-      });
-      setNewSkillLearn('');
-      setSelectedLearnCategory('');
-    }
-  };
-
-  // Remove a skill from learn list
-  const removeSkillToLearn = (index) => {
-    const updatedSkills = [...editForm.skillsToLearn];
-    updatedSkills.splice(index, 1);
-    setEditForm({
-      ...editForm,
-      skillsToLearn: updatedSkills
-    });
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Profile Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: Profile Info */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-blue-100 flex items-center justify-center rounded-full text-blue-600 font-semibold mx-auto mb-2">
-                  {profile?.fullName?.substring(0, 2).toUpperCase() || 'TU'}
-                </div>
-                <button className="text-blue-600 hover:text-blue-700 text-sm">Change Photo</button>
-              </div>
-
-              {/* Full Name */}
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                <input
-                  type="text"
-                  value={editForm.fullName}
-                  disabled
-                  className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-not-allowed"
-                />
-              </div>
-
-              {/* Email */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={editForm.email}
-                  disabled
-                  className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-not-allowed"
-                />
-              </div>
-
-              {/* Phone */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <input
-                  type="tel"
-                  value={editForm.phone || 'Not set'}
-                  disabled
-                  className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-not-allowed"
-                />
-              </div>
-
-              {/* Location */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                <input
-                  type="text"
-                  value={editForm.location || 'Not specified'}
-                  disabled
-                  className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-not-allowed"
-                />
-              </div>
-
-              {/* Professional Title */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Professional Title</label>
-                <input
-                  type="text"
-                  value={editForm.professionalTitle || ''}
-                  disabled
-                  className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg cursor-not-allowed"
-                />
-              </div>
-
-              {/* Edit Button */}
+      {/* Navigation Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-8">
+              <Link to="/" className="text-xl font-bold text-blue-600">
+                SkillSwap
+              </Link>
+              <nav className="flex space-x-4">
+                <Link to="/" className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                  Home
+                </Link>
+                <Link to="/browse" className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                  Browse
+                </Link>
+                <Link to="/profile" className="text-blue-600 bg-blue-50 px-3 py-2 rounded-md text-sm font-medium">
+                  Profile
+                </Link>
+              </nav>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">Welcome, {user?.name}</span>
+              <Link to="/browse" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                Browse Users
+              </Link>
               <button
-                onClick={handleEditProfile}
-                className="mt-6 w-full bg-gray-900 text-white py-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center space-x-2"
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+                className="text-red-600 hover:text-red-700 text-sm font-medium"
               >
-                <Edit3 size={16} />
-                <span>Edit Profile</span>
+                Logout
               </button>
-            </div>
-
-            {/* Skills I Can Teach */}
-            <div className="bg-white rounded-xl shadow-sm p-6 mt-6 border border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-3">Skills I Can Teach</h3>
-              <div className="space-y-2">
-                {editForm.skillsToTeach.length === 0 ? (
-                  <p className="text-gray-500 text-sm">No skills added yet</p>
-                ) : (
-                  editForm.skillsToTeach.map((skill, index) => (
-                    <div key={index} className="bg-blue-50 text-blue-800 px-3 py-2 rounded-lg text-sm flex justify-between items-center">
-                      <span>{skill.name} ({skill.category})</span>
-                      <button
-                        onClick={() => removeSkillToTeach(index)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Skills I Want to Learn */}
-            <div className="bg-white rounded-xl shadow-sm p-6 mt-6 border border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-3">Skills I Want to Learn</h3>
-              <div className="space-y-2">
-                {editForm.skillsToLearn.length === 0 ? (
-                  <p className="text-gray-500 text-sm">No skills added yet</p>
-                ) : (
-                  editForm.skillsToLearn.map((skill, index) => (
-                    <div key={index} className="bg-green-50 text-green-800 px-3 py-2 rounded-lg text-sm flex justify-between items-center">
-                      <span>{skill.name} ({skill.category})</span>
-                      <button
-                        onClick={() => removeSkillToLearn(index)}
-                        className="text-green-600 hover:text-green-800"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Side: Swap Requests */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Swap Requests</h3>
-
-              {/* Incoming Requests */}
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-900 mb-3">Incoming Requests</h4>
-                {getIncomingRequests().length === 0 ? (
-                  <p className="text-gray-500 text-sm">No incoming requests</p>
-                ) : (
-                  getIncomingRequests().map((request) => (
-                    <div key={request._id} className="bg-gray-50 p-4 rounded-lg mb-3">
-                      <p><strong>{request.fromUserId.fullName || request.fromUserId.name}</strong> wants to learn:</p>
-                      <p>Offer: <strong>{request.offeredSkill}</strong> for <strong>{request.wantedSkill}</strong></p>
-                      <div className="mt-2 flex space-x-2">
-                        <button className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
-                          Accept
-                        </button>
-                        <button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Outgoing Requests */}
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Outgoing Requests</h4>
-                {getOutgoingRequests().length === 0 ? (
-                  <p className="text-gray-500 text-sm">No outgoing requests</p>
-                ) : (
-                  getOutgoingRequests().map((request) => (
-                    <div key={request._id} className="bg-gray-50 p-4 rounded-lg mb-3">
-                      <p>Sent to: <strong>{request.toUserId.fullName || request.toUserId.name}</strong></p>
-                      <p>Offer: <strong>{request.offeredSkill}</strong> for <strong>{request.wantedSkill}</strong></p>
-                    </div>
-                  ))
-                )}
-              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Edit Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Edit Profile</h2>
-              <button
-                onClick={handleCancel}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={24} />
-              </button>
+      <div className="max-w-4xl mx-auto p-6">
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">Edit Profile</h1>
+
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Basic Information */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Basic Information</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Full Name
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
             </div>
 
-            <div className="space-y-4">
-              {/* Full Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                <input
-                  type="text"
-                  value={editForm.fullName}
-                  onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <input
-                  type="tel"
-                  value={editForm.phone}
-                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                  placeholder="e.g., +1 (555) 123-4567"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Location */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                <input
-                  type="text"
-                  value={editForm.location}
-                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                  placeholder="e.g., New York, USA"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Professional Title */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Professional Title</label>
-                <input
-                  type="text"
-                  value={editForm.professionalTitle}
-                  onChange={(e) => setEditForm({ ...editForm, professionalTitle: e.target.value })}
-                  placeholder="e.g. Web Developer, Photographer"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Skills I Can Teach */}
-              <div className="mt-4">
-                <h4 className="font-medium text-gray-900 mb-2">Skills I Can Teach</h4>
-                <div className="flex space-x-2 mb-2">
-                  <input
-                    type="text"
-                    value={newSkillTeach}
-                    onChange={(e) => setNewSkillTeach(e.target.value)}
-                    placeholder="Add a skill you can teach"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <select
-                    value={selectedTeachCategory}
-                    onChange={(e) => setSelectedTeachCategory(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select Category</option>
-                    {skillCategories.map((category) => (
-                      <option key={category.value} value={category.value}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={addSkillToTeach}
-                    className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
-                <div className="space-y-1">
-                  {editForm.skillsToTeach.map((skill, index) => (
-                    <div key={index} className="bg-blue-50 text-blue-800 px-3 py-2 rounded-lg text-sm flex justify-between items-center">
-                      <span>{skill.name} ({skill.category})</span>
-                      <button
-                        onClick={() => removeSkillToTeach(index)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Skills I Want to Learn */}
-              <div className="mt-4">
-                <h4 className="font-medium text-gray-900 mb-2">Skills I Want to Learn</h4>
-                <div className="flex space-x-2 mb-2">
-                  <input
-                    type="text"
-                    value={newSkillLearn}
-                    onChange={(e) => setNewSkillLearn(e.target.value)}
-                    placeholder="Add a skill you want to learn"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <select
-                    value={selectedLearnCategory}
-                    onChange={(e) => setSelectedLearnCategory(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select Category</option>
-                    {skillCategories.map((category) => (
-                      <option key={category.value} value={category.value}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={addSkillToTeach}
-                    className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
-                <div className="space-y-1">
-                  {editForm.skillsToLearn.map((skill, index) => (
-                    <div key={index} className="bg-green-50 text-green-800 px-3 py-2 rounded-lg text-sm flex justify-between items-center">
-                      <span>{skill.name} ({skill.category})</span>
-                      <button
-                        onClick={() => {
-                          const updated = [...editForm.skillsToLearn];
-                          updated.splice(index, 1);
-                          setEditForm({ ...editForm, skillsToLearn: updated });
-                        }}
-                        className="text-green-600 hover:text-green-800"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Save Button */}
-              <div className="mt-6 flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={handleCancel}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveChanges}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Save Changes
-                </button>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Location
+              </label>
+              <input
+                type="text"
+                name="location"
+                value={formData.location}
+                onChange={handleInputChange}
+                placeholder="City, Country"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
           </div>
-        </div>
-      )}
 
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Profile Picture URL
+            </label>
+            <input
+              type="url"
+              name="profilePicture"
+              value={formData.profilePicture}
+              onChange={handleInputChange}
+              placeholder="https://example.com/your-photo.jpg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Bio
+            </label>
+            <textarea
+              name="bio"
+              value={formData.bio}
+              onChange={handleInputChange}
+              rows="4"
+              placeholder="Tell others about yourself, your experience, and what you're passionate about..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              maxLength="500"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              {formData.bio.length}/500 characters
+            </p>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Availability
+            </label>
+            <select
+              name="availability"
+              value={formData.availability}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {availabilityOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mt-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                name="isPublic"
+                checked={formData.isPublic}
+                onChange={handleInputChange}
+                className="mr-2"
+              />
+              <span className="text-sm text-gray-700">
+                Make my profile public (others can find and contact me)
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {/* Skills Offered */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Skills I Can Offer</h2>
+          
+          <div className="flex space-x-2 mb-4">
+            <input
+              type="text"
+              value={newSkillOffered}
+              onChange={(e) => setNewSkillOffered(e.target.value)}
+              placeholder="Add a skill you can teach"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkillOffered())}
+            />
+            <button
+              type="button"
+              onClick={addSkillOffered}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Add
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {formData.skillsOffered.map((skill, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+              >
+                {skill}
+                <button
+                  type="button"
+                  onClick={() => removeSkillOffered(skill)}
+                  className="ml-2 text-blue-600 hover:text-blue-800"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+          
+          {formData.skillsOffered.length === 0 && (
+            <p className="text-gray-500 text-sm">No skills added yet. Add skills you can teach to others.</p>
+          )}
+        </div>
+
+        {/* Skills Wanted */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Skills I Want to Learn</h2>
+          
+          <div className="flex space-x-2 mb-4">
+            <input
+              type="text"
+              value={newSkillWanted}
+              onChange={(e) => setNewSkillWanted(e.target.value)}
+              placeholder="Add a skill you want to learn"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkillWanted())}
+            />
+            <button
+              type="button"
+              onClick={addSkillWanted}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            >
+              Add
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {formData.skillsWanted.map((skill, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm"
+              >
+                {skill}
+                <button
+                  type="button"
+                  onClick={() => removeSkillWanted(skill)}
+                  className="ml-2 text-green-600 hover:text-green-800"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+          
+          {formData.skillsWanted.length === 0 && (
+            <p className="text-gray-500 text-sm">No skills added yet. Add skills you want to learn from others.</p>
+          )}
+        </div>
+
+        {/* Message */}
+        {message.text && (
+          <div className={`p-4 rounded-md ${
+            message.type === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-700' 
+              : 'bg-red-50 border border-red-200 text-red-700'
+          }`}>
+            {message.text}
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-8 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+          >
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
+      </div>
     </div>
   );
 };

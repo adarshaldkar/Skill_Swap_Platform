@@ -1,85 +1,42 @@
-import { useState } from 'react';
+import { useContext } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthContext } from './context/AuthContext';
 import AuthForm from './components/AuthForm';
 import SkillSwapHero from './components/SkillSwapHero';
 import UserCard from './components/UserCard';
 import EditProfile from './components/EditProfile';
 
 function App() {
-  const [currentView, setCurrentView] = useState('auth'); // 'auth', 'home', 'browse', 'profile'
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, loading } = useContext(AuthContext);
 
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
+  // If user is not authenticated, show auth routes
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/login" element={<AuthForm mode="login" />} />
+        <Route path="/signup" element={<AuthForm mode="signup" />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
-  // Handle successful authentication
-  const handleAuthSuccess = () => {
-    setIsAuthenticated(true);
-    setCurrentView('home');
-  };
-
-  // Navigation handlers
-  const handleGoHome = () => {
-    setCurrentView('home');
-  };
-
-  const handleBrowseSkills = () => {
-    setCurrentView('browse');
-  };
-
-  const handleMyProfile = () => {
-    setCurrentView('profile');
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setCurrentView('auth');
-  };
-
-  // Render current view
-  const renderCurrentView = () => {
-    if (!isAuthenticated) {
-      return <AuthForm onAuthSuccess={handleAuthSuccess} />;
-    }
-
-    switch (currentView) {
-      case 'home':
-        return (
-          <SkillSwapHero 
-            onBrowseSkills={handleBrowseSkills}
-            onMyProfile={handleMyProfile}
-            onLogout={handleLogout}
-          />
-        );
-      case 'browse':
-        return (
-          <UserCard 
-            onGoHome={handleGoHome}
-            onMyProfile={handleMyProfile}
-            onLogout={handleLogout}
-          />
-        );
-      case 'profile':
-        return (
-          <EditProfile 
-            onGoHome={handleGoHome}
-            onBrowseSkills={handleBrowseSkills}
-            onLogout={handleLogout}
-          />
-        );
-      default:
-        return (
-          <SkillSwapHero 
-            onBrowseSkills={handleBrowseSkills}
-            onMyProfile={handleMyProfile}
-            onLogout={handleLogout}
-          />
-        );
-    }
-  };
-
+  // If user is authenticated, show protected routes
   return (
-    <div className="App">
-      {renderCurrentView()}
-    </div>
+    <Routes>
+      <Route path="/" element={<SkillSwapHero />} />
+      <Route path="/browse" element={<UserCard />} />
+      <Route path="/profile" element={<EditProfile />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

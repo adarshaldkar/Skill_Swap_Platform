@@ -1,9 +1,17 @@
-// backend/routes/searchRoutes.js
-const express = require("express");
+// routes/searchRoutes.js - SEARCH ROUTES
+const express = require('express');
 const router = express.Router();
-const searchController = require("../controllers/searchController");
-const authMiddleware = require("../middleware/authMiddleware");
+const { auth } = require('../middleware/auth');
+const {
+  searchUsers,
+  getFeaturedUsers,
+  getUsersBySkill,
+  getSearchSuggestions
+} = require('../controllers/searchController');
 
-router.get("/search", authMiddleware.authenticateUser, searchController.searchUsers);
+router.get('/users', auth, searchUsers);
+router.get('/featured', auth, getFeaturedUsers);
+router.get('/skill/:skill', auth, getUsersBySkill);
+router.get('/suggestions', auth, getSearchSuggestions);
 
 module.exports = router;

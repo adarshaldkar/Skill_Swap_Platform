@@ -1,214 +1,274 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Users, BookOpen, Star, ArrowRight, Sparkles } from 'lucide-react';
+// src/components/SkillSwapHero.jsx - HERO/LANDING PAGE
+import React, { useState, useEffect, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 
-const SkillSwapHero = (props) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isVisible, setIsVisible] = useState(false);
+const SkillSwapHero = () => {
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [featuredUsers, setFeaturedUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
-  const featuredSkills = [
-    'Web Development',
-    'Digital Photography', 
-    'Graphic Design',
-    'Data Analysis',
-    'Language Learning',
-    'Music Production'
-  ];
-
-  const featuredSwappers = [
-    {
-      name: 'Sarah Chen',
-      rating: 5.0,
-      canTeach: ['Web Development', 'Digital Photography'],
-      lookingFor: 'Graphic Design',
-      avatar: 'SC'
-    },
-    {
-      name: 'Alex Rodriguez',
-      rating: 4.9,
-      canTeach: ['Data Analysis', 'Python'],
-      lookingFor: 'UI/UX Design',
-      avatar: 'AR'
-    },
-    {
-      name: 'Emma Thompson',
-      rating: 5.0,
-      canTeach: ['Creative Writing', 'Marketing'],
-      lookingFor: 'Web Development',
-      avatar: 'ET'
+    if (user) {
+      fetchFeaturedUsers();
+    } else {
+      setLoading(false);
     }
+  }, [user]);
+
+  const fetchFeaturedUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/search/featured?limit=4', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFeaturedUsers(data.users || []);
+      }
+    } catch (error) {
+      console.error('Error fetching featured users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const skillCategories = [
+    { name: 'Web Development', icon: '💻', color: 'bg-blue-100 text-blue-800' },
+    { name: 'Design', icon: '🎨', color: 'bg-purple-100 text-purple-800' },
+    { name: 'Photography', icon: '📸', color: 'bg-green-100 text-green-800' },
+    { name: 'Writing', icon: '✍️', color: 'bg-yellow-100 text-yellow-800' },
+    { name: 'Music', icon: '🎵', color: 'bg-pink-100 text-pink-800' },
+    { name: 'Languages', icon: '🗣️', color: 'bg-indigo-100 text-indigo-800' }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-20 left-20 w-32 h-32 bg-purple-400 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-40 right-32 w-24 h-24 bg-blue-400 rounded-full blur-2xl animate-pulse delay-1000"></div>
-        <div className="absolute bottom-40 left-1/3 w-40 h-40 bg-indigo-400 rounded-full blur-3xl animate-pulse delay-2000"></div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="relative z-10 flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-sm border-b border-white/20">
-        <div className="flex items-center space-x-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            SkillSwap
-          </span>
-        </div>
-        
-        <div className="flex items-center space-x-6">
-          <button className="text-gray-600 hover:text-purple-600 transition-colors font-medium" onClick={props.onBrowseSkills}>
-            Browse Skills
-          </button>
-          <button
-            className="text-gray-600 hover:text-purple-600 transition-colors font-medium"
-            onClick={props.onMyProfile}
-          >
-            My Profile
-          </button>
-          <button 
-            onClick={props.onLogout}
-            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-300 transform hover:scale-105"
-          >
-            Log Out
-          </button>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Hero Section */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 pt-20 pb-16">
-        <div className={`text-center transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-          <h1 className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
-            Swap Skills, Learn & Teach for Free!
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            Swap Skills,{' '}
+            <span className="text-blue-600">Grow Together</span>
           </h1>
-          
-          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
-            Exchange your expertise with others. No money involved - just knowledge sharing and community building.
+          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Connect with talented individuals and exchange skills. Learn something new while teaching what you know best.
           </p>
-
-          {/* Search Section */}
-          <div className={`max-w-2xl mx-auto mb-16 transform transition-all duration-1000 delay-300 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search skills (e.g., Graphic Design, Piano, Coding...)"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 rounded-2xl focus:border-purple-500 focus:outline-none transition-all duration-300 bg-white/90 backdrop-blur-sm"
-              />
-              <button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-8 py-3 rounded-xl hover:from-purple-600 hover:to-blue-600 transition-all duration-300 font-medium flex items-center space-x-2 group">
-                <span>Find Skills</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          
+          {!user ? (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/signup"
+                className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Get Started
+              </Link>
+              <Link
+                to="/login"
+                className="bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold border-2 border-blue-600 hover:bg-blue-50 transition-colors"
+              >
+                Sign In
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/browse"
+                className="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Browse Users
+              </Link>
+              <Link
+                to="/profile"
+                className="bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold border-2 border-blue-600 hover:bg-blue-50 transition-colors"
+              >
+                My Profile
+              </Link>
+              <button
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+                className="bg-red-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-red-700 transition-colors"
+              >
+                Logout
               </button>
             </div>
-          </div>
-
-          {/* Popular Skills Tags */}
-          <div className={`mb-16 transform transition-all duration-1000 delay-500 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <p className="text-gray-600 mb-4">Popular skills:</p>
-            <div className="flex flex-wrap justify-center gap-3">
-              {featuredSkills.map((skill, index) => (
-                <button
-                  key={index}
-                  className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-full hover:bg-gradient-to-r hover:from-purple-500 hover:to-blue-500 hover:text-white transition-all duration-300 transform hover:scale-105"
-                >
-                  {skill}
-                </button>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
+      </section>
 
-        {/* Featured Skill Swappers */}
-        <div className={`transform transition-all duration-1000 delay-700 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
-            Featured Skill Swappers
+      {/* Skill Categories */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+            Popular Skill Categories
           </h2>
-          
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {featuredSwappers.map((swapper, index) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {skillCategories.map((category, index) => (
               <div
                 key={index}
-                className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:shadow-xl transition-all duration-300 transform hover:scale-105 group"
+                className={`${category.color} p-6 rounded-lg text-center hover:scale-105 transition-transform cursor-pointer`}
               >
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-4">
-                    {swapper.avatar}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-800">{swapper.name}</h3>
-                    <div className="flex items-center">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span className="text-sm text-gray-600 ml-1">{swapper.rating}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 mb-2">Can teach:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {swapper.canTeach.map((skill, skillIndex) => (
-                      <span
-                        key={skillIndex}
-                        className="px-3 py-1 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 rounded-full text-sm"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 mb-2">Looking to learn:</p>
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                    {swapper.lookingFor}
-                  </span>
-                </div>
-                
-                <button className="w-full bg-gradient-to-r from-purple-500 to-blue-500 text-white py-2 rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-300 transform group-hover:scale-105">
-                  Request Swap
-                </button>
+                <div className="text-3xl mb-2">{category.icon}</div>
+                <h3 className="font-semibold">{category.name}</h3>
               </div>
             ))}
           </div>
         </div>
+      </section>
 
-        {/* Stats Section */}
-        <div className={`mt-20 transform transition-all duration-1000 delay-900 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-          <div className="grid md:grid-cols-3 gap-8 max-w-3xl mx-auto">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-3xl font-bold text-gray-800 mb-2">2,500+</h3>
-              <p className="text-gray-600">Active Skill Swappers</p>
-            </div>
+      {/* Featured Users (only for logged-in users) */}
+      {user && (
+        <section className="py-16 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+              Featured Users
+            </h2>
             
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-8 h-8 text-white" />
+            {loading ? (
+              <div className="flex justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               </div>
-              <h3 className="text-3xl font-bold text-gray-800 mb-2">500+</h3>
-              <p className="text-gray-600">Skills Available</p>
-            </div>
+            ) : featuredUsers.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {featuredUsers.map((featuredUser) => (
+                  <div key={featuredUser._id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+                    <div className="flex items-center mb-4">
+                      {featuredUser.profilePicture ? (
+                        <img
+                          src={featuredUser.profilePicture}
+                          alt={featuredUser.name}
+                          className="w-12 h-12 rounded-full object-cover mr-3"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                          <span className="text-white font-semibold">
+                            {featuredUser.name?.charAt(0)}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{featuredUser.name}</h3>
+                        <p className="text-gray-500 text-sm">{featuredUser.location || 'Location not specified'}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-2">Skills offered:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {featuredUser.skillsOffered?.slice(0, 3).map((skill, index) => (
+                          <span
+                            key={index}
+                            className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                        {featuredUser.skillsOffered?.length > 3 && (
+                          <span className="text-gray-500 text-xs">
+                            +{featuredUser.skillsOffered.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <span className="text-yellow-400">★</span>
+                        <span className="text-sm text-gray-600 ml-1">
+                          {featuredUser.rating ? featuredUser.rating.toFixed(1) : 'New'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {featuredUser.skillCount} skills
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500">
+                <p>No featured users available at the moment.</p>
+              </div>
+            )}
             
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-white" />
+            {featuredUsers.length > 0 && (
+              <div className="text-center mt-8">
+                <Link
+                  to="/browse"
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  View All Users
+                </Link>
               </div>
-              <h3 className="text-3xl font-bold text-gray-800 mb-2">10,000+</h3>
-              <p className="text-gray-600">Successful Swaps</p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* How It Works */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+            How It Works
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="bg-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                1
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Create Your Profile</h3>
+              <p className="text-gray-600">
+                List your skills and what you'd like to learn. Upload a photo and write a brief bio.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                2
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Find & Connect</h3>
+              <p className="text-gray-600">
+                Browse users and send swap requests to people whose skills match your interests.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                3
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Start Learning</h3>
+              <p className="text-gray-600">
+                Meet up, exchange knowledge, and grow your skills while helping others learn too.
+              </p>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Call to Action */}
+      {!user && (
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-blue-600">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Ready to Start Your Skill Journey?
+            </h2>
+            <p className="text-xl text-blue-100 mb-8">
+              Join thousands of learners and experts exchanging knowledge every day.
+            </p>
+            <Link
+              to="/signup"
+              className="bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+            >
+              Join SkillSwap Today
+            </Link>
+          </div>
+        </section>
+      )}
     </div>
   );
 };

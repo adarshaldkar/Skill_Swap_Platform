@@ -1,9 +1,13 @@
-const express = require("express");
+// routes/userRoutes.js - USER ROUTES
+const express = require('express');
 const router = express.Router();
-const authMiddleware = require("../middleware/authMiddleware");
-const usersController = require("../controllers/usersController");
+const { auth } = require('../middleware/auth');
+const { getUser, updateUser, changePassword, deleteUser } = require('../controllers/usersController');
 
-router.get("/me", authMiddleware.authenticateUser, usersController.getCurrentUser);
-router.put("/me", authMiddleware.authenticateUser, usersController.updateCurrentUser);
+router.get('/profile', auth, getUser);
+router.put('/profile', auth, updateUser);
+router.put('/change-password', auth, changePassword);
+router.delete('/account', auth, deleteUser);
+router.get('/:id', auth, getUser);
 
 module.exports = router;
